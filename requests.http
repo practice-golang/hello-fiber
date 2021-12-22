@@ -1,0 +1,16 @@
+@uri=http://localhost:2918
+
+### index
+GET {{uri}}
+
+### hello
+GET {{uri}}/hello/John
+
+### Json POST
+POST {{uri}}/json-post
+Content-Type: application/json
+
+{
+    "name": "john",
+    "age": 9999
+}
