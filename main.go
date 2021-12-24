@@ -1,13 +1,18 @@
 package main // import "hello-fiber"
 
 import (
+	"embed"
 	"log"
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/filesystem"
 
 	"github.com/goccy/go-json"
 )
+
+//go:embed html/*
+var Content embed.FS
 
 type Person struct {
 	Name string `json:"name"`
@@ -36,7 +41,7 @@ func JsonPOST(c *fiber.Ctx) error {
 }
 
 func main() {
-	listen := "127.0.0.1:2918"
+	listen := "127.0.0.1:4416"
 
 	cfg := fiber.Config{
 		AppName: "hello-fiber",
@@ -48,6 +53,11 @@ func main() {
 	b.Get("/", Index)
 	b.Get("/hello/:name", Hello)
 	b.Post("/json-post", JsonPOST)
+	b.Use("/*.html", filesystem.New(filesystem.Config{
+		Root:       http.FS(Content),
+		PathPrefix: "html",
+		Browse:     true,
+	}))
 
 	log.Fatal(b.Listen(listen))
 }

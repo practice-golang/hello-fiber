@@ -1,4 +1,4 @@
-@uri=http://localhost:2918
+@uri=http://localhost:4416
 
 ### index
 GET {{uri}}
