@@ -3,20 +3,23 @@ package main // import "hello-fiber"
 import (
 	"embed"
 	"fmt"
+	"io"
+	"io/fs"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/filesystem"
 
 	// "github.com/goccy/go-json"
 	json "github.com/bytedance/sonic"
 )
 
-//go:embed html/*
+//go:embed static/html/*
 var Content embed.FS
 
-var staticPath = "../html"
+var staticPath = "static/html"
 
 type Person struct {
 	Name string `json:"name"`
@@ -44,9 +47,50 @@ func JsonPOST(c *fiber.Ctx) error {
 	return c.JSON(p)
 }
 
-func main() {
-	listen := "127.0.0.1:4416"
+func exportEmbedStatic() error {
+	exportPath := "."
 
+	err := os.MkdirAll(exportPath, 0755)
+	if err != nil {
+		return err
+	}
+
+	err = fs.WalkDir(Content, "static", func(path string, d fs.DirEntry, err error) error {
+		if !d.IsDir() {
+			filePath := filepath.Join(exportPath, path)
+			err := os.MkdirAll(filepath.Dir(filePath), 0755)
+			if err != nil {
+				return err
+			}
+
+			srcFile, err := Content.Open(path)
+			if err != nil {
+				return err
+			}
+			defer srcFile.Close()
+
+			dstFile, err := os.Create(filePath)
+			if err != nil {
+				return err
+			}
+			defer dstFile.Close()
+
+			_, err = io.Copy(dstFile, srcFile)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func initServer(listen string) *fiber.App {
 	cfg := fiber.Config{
 		AppName:               "hello-fiber",
 		DisableStartupMessage: true,
@@ -56,7 +100,7 @@ func main() {
 
 	b := fiber.New(cfg)
 
-	b.Get("/", Index)
+	b.Get("/api", Index)
 	b.Get("/hello/:name", Hello)
 	b.Post("/json-post", JsonPOST)
 
@@ -68,18 +112,20 @@ func main() {
 		return c.SendString(c.Params("+"))
 	})
 
-	b.Use("/*.html", filesystem.New(filesystem.Config{
-		Root:       http.FS(Content),
-		PathPrefix: "html",
-		Browse:     true,
-	}))
-
 	b.Static("/", staticPath)
-	// b.Use("/", filesystem.New(filesystem.Config{
-	// 	Root:       http.FS(Content),
-	// 	PathPrefix: "html",
-	// 	Browse:     true,
-	// }))
+
+	return b
+}
+
+func main() {
+	err := exportEmbedStatic()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	listen := "127.0.0.1:4416"
+
+	b := initServer(listen)
 
 	fmt.Println("Listening on " + listen)
 	log.Fatal(b.Listen(listen))
