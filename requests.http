@@ -14,3 +14,15 @@ Content-Type: application/json
     "name": "john",
     "age": 9999
 }
+
+
+### user+
+GET {{uri}}/user/1/2?name=haha&age=123
+
+
+### user+
+GET {{uri}}/user/1
+
+
+### html
+GET {{uri}}/hello.html
