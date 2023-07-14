@@ -51,9 +51,9 @@ func JsonPOST(c *fiber.Ctx) error {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
 
-	fdatas := form.File["images"]
-	for _, fdata := range fdatas {
-		err := c.SaveFile(fdata, UploadRoot+"/"+fdata.Filename)
+	imdatas := form.File["images"]
+	for _, imdata := range imdatas {
+		err := c.SaveFile(imdata, UploadRoot+"/"+imdata.Filename)
 		if err != nil {
 			return c.Status(http.StatusBadRequest).SendString(err.Error())
 		}
