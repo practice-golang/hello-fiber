@@ -8,7 +8,7 @@
     It works!
 
     <div>
-        image: <input type="file" id="upload-image" name="image" accept=".gif, .jpg, .png" />
+        image: <input type="file" id="upload-images" name="images" accept=".gif, .jpg, .png" multiple />
     </div>
 
     <button type="button" onclick="postJSON()">send</button>
@@ -24,14 +24,14 @@
         const uri = "/json-post"
 
         const form = new FormData()
-        form.append("image", document.querySelector("input#upload-image").files[0])
+
         form.append("person", JSON.stringify(personData))
+        const finput = document.querySelector("input#upload-images")
+        for (let i = 0; i < finput.files.length; i++) {
+            form.append("images", finput.files[i])
+        }
 
-        const r = await fetch(uri, {
-            method: "POST",
-            body: form
-        })
-
+        const r = await fetch(uri, { method: "POST", body: form })
         if (r.ok) {
             const json = await r.json()
             console.log(json)

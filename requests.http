@@ -19,10 +19,16 @@ Content-Disposition: form-data; name="person"
 }
 
 --FormDataBoundary7MA4YWxkTrZu0gW
-Content-Disposition: form-data; name="image"; filename="panic.png"
+Content-Disposition: form-data; name="images"; filename="panic.png"
 Content-Type: image/jpg
 
 < ./panic.png
+
+--FormDataBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="images"; filename="panic1.png"
+Content-Type: image/jpg
+
+< ./panic1.png
 
 --FormDataBoundary7MA4YWxkTrZu0gW--
 

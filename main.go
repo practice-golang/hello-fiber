@@ -46,9 +46,17 @@ func JsonPOST(c *fiber.Ctx) error {
 		}
 	}
 
-	fdata, err := c.FormFile("image")
-	if err == nil {
-		c.SaveFile(fdata, UploadRoot+"/"+fdata.Filename)
+	form, err := c.MultipartForm()
+	if err != nil {
+		return c.Status(http.StatusBadRequest).SendString(err.Error())
+	}
+
+	fdatas := form.File["images"]
+	for _, fdata := range fdatas {
+		err := c.SaveFile(fdata, UploadRoot+"/"+fdata.Filename)
+		if err != nil {
+			return c.Status(http.StatusBadRequest).SendString(err.Error())
+		}
 	}
 
 	return c.Status(http.StatusOK).JSON(jsonData)
