@@ -2,29 +2,27 @@ package main // import "hello-fiber"
 
 import (
 	"embed"
+	"encoding/json"
 	"fmt"
-	"io"
-	"io/fs"
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 
 	"github.com/gofiber/fiber/v2"
-
+	"github.com/gofiber/template/html/v2"
 	// "github.com/goccy/go-json"
-	json "github.com/bytedance/sonic"
+	// json "github.com/bytedance/sonic"
 )
 
 //go:embed static/html/*
 var Content embed.FS
 
-var staticPath = "static/html"
-
 type Person struct {
 	Name string `json:"name"`
 	Age  int    `json:"age"`
 }
+
+var UploadRoot = "upload"
 
 func Index(c *fiber.Ctx) error {
 	return c.SendString("Hello, World 👋!")
@@ -39,90 +37,71 @@ func Hello(c *fiber.Ctx) error {
 }
 
 func JsonPOST(c *fiber.Ctx) error {
-	p := Person{}
+	jsonData := Person{}
 
-	json.Unmarshal(c.Body(), &p)
-
-	c.SendStatus(http.StatusAccepted)
-	return c.JSON(p)
-}
-
-func exportEmbedStatic() error {
-	exportPath := "."
-
-	err := os.MkdirAll(exportPath, 0755)
+	err := json.Unmarshal([]byte(c.FormValue("person")), &jsonData)
 	if err != nil {
-		return err
+		log.Println(err)
+		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
 
-	err = fs.WalkDir(Content, "static", func(path string, d fs.DirEntry, err error) error {
-		if !d.IsDir() {
-			filePath := filepath.Join(exportPath, path)
-			err := os.MkdirAll(filepath.Dir(filePath), 0755)
-			if err != nil {
-				return err
-			}
-
-			srcFile, err := Content.Open(path)
-			if err != nil {
-				return err
-			}
-			defer srcFile.Close()
-
-			dstFile, err := os.Create(filePath)
-			if err != nil {
-				return err
-			}
-			defer dstFile.Close()
-
-			_, err = io.Copy(dstFile, srcFile)
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-
+	fdata, err := c.FormFile("image")
 	if err != nil {
-		return err
+		log.Println(err)
+		return c.Status(http.StatusBadRequest).SendString("Bad Request")
 	}
 
-	return nil
+	fmt.Println(fdata.Filename)
+	c.SaveFile(fdata, UploadRoot+"/"+fdata.Filename)
+
+	return c.Status(http.StatusOK).JSON(jsonData)
 }
 
 func initServer(listen string) *fiber.App {
+	if _, err := os.Stat(UploadRoot); os.IsNotExist(err) {
+		os.Mkdir(UploadRoot, os.ModePerm)
+	}
+
+	// engine := html.New("./static/html", ".html")
+	engine := html.NewFileSystem(http.FS(Content), ".html")
 	cfg := fiber.Config{
 		AppName:               "hello-fiber",
 		DisableStartupMessage: true,
 		JSONEncoder:           json.Marshal,
 		JSONDecoder:           json.Unmarshal,
+		Views:                 engine,
 	}
 
-	b := fiber.New(cfg)
+	embedRoot := "static/html"
 
-	b.Get("/api", Index)
-	b.Get("/hello/:name", Hello)
-	b.Post("/json-post", JsonPOST)
+	app := fiber.New(cfg)
 
-	b.Get("/user/:id?", func(c *fiber.Ctx) error {
+	app.Get("/api", Index)
+	app.Get("/hello/:name", Hello)
+	app.Post("/json-post", JsonPOST)
+
+	app.Get("/user/:id?", func(c *fiber.Ctx) error {
 		return c.SendString(c.Params("id"))
 	})
 
-	b.Get("/user/+", func(c *fiber.Ctx) error {
+	app.Get("/user/+", func(c *fiber.Ctx) error {
 		return c.SendString(c.Params("+"))
 	})
 
-	b.Static("/", staticPath)
+	app.Get("/", func(c *fiber.Ctx) error {
+		return c.Render(embedRoot+"/index", fiber.Map{})
+	})
 
-	return b
+	app.Get("/hello-tmpl", func(c *fiber.Ctx) error {
+		return c.Render(embedRoot+"/template_admin/index", fiber.Map{
+			"Title": "Hello, World!",
+		})
+	})
+
+	return app
 }
 
 func main() {
-	err := exportEmbedStatic()
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	listen := "127.0.0.1:4416"
 
 	b := initServer(listen)

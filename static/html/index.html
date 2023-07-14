@@ -6,6 +6,37 @@
 
 <body>
     It works!
+
+    <div>
+        image: <input type="file" id="upload-image" name="image" accept=".gif, .jpg, .png" />
+    </div>
+
+    <button type="button" onclick="postJSON()">send</button>
 </body>
+
+<script>
+    const personData = {
+        "name": "James",
+        "age": 25
+    }
+
+    async function postJSON() {
+        const uri = "/json-post"
+
+        const form = new FormData()
+        form.append("person", JSON.stringify(personData))
+        form.append("image", document.querySelector("input#upload-image").files[0])
+
+        const r = await fetch(uri, {
+            method: "POST",
+            body: form
+        })
+
+        if (r.ok) {
+            const json = await r.json()
+            console.log(json)
+        }
+    }
+</script>
 
 </html>
