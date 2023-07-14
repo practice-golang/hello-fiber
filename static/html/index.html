@@ -24,8 +24,8 @@
         const uri = "/json-post"
 
         const form = new FormData()
-        form.append("person", JSON.stringify(personData))
         form.append("image", document.querySelector("input#upload-image").files[0])
+        form.append("person", JSON.stringify(personData))
 
         const r = await fetch(uri, {
             method: "POST",

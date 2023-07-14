@@ -39,6 +39,7 @@ func Hello(c *fiber.Ctx) error {
 func JsonPOST(c *fiber.Ctx) error {
 	jsonData := Person{}
 
+	// err := c.BodyParser(&jsonData)
 	err := json.Unmarshal([]byte(c.FormValue("person")), &jsonData)
 	if err != nil {
 		log.Println(err)
