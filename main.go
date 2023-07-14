@@ -38,22 +38,18 @@ func Hello(c *fiber.Ctx) error {
 
 func JsonPOST(c *fiber.Ctx) error {
 	jsonData := Person{}
-
-	// err := c.BodyParser(&jsonData)
-	err := json.Unmarshal([]byte(c.FormValue("person")), &jsonData)
-	if err != nil {
-		log.Println(err)
-		return c.Status(http.StatusBadRequest).SendString(err.Error())
+	person := c.FormValue("person")
+	if person != "" {
+		err := json.Unmarshal([]byte(person), &jsonData)
+		if err != nil {
+			return c.Status(http.StatusBadRequest).SendString(err.Error())
+		}
 	}
 
 	fdata, err := c.FormFile("image")
-	if err != nil {
-		log.Println(err)
-		return c.Status(http.StatusBadRequest).SendString("Bad Request")
+	if err == nil {
+		c.SaveFile(fdata, UploadRoot+"/"+fdata.Filename)
 	}
-
-	fmt.Println(fdata.Filename)
-	c.SaveFile(fdata, UploadRoot+"/"+fdata.Filename)
 
 	return c.Status(http.StatusOK).JSON(jsonData)
 }
